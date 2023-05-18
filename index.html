@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="UserAccounts.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="style.css">
+    <title>Login Form</title>
+</head>
+<body onload="loadDefault()">
+  <!-- This would be the front page of the website -->
+  <div class="loginbox" >
+    <img src="memart.png" class="avatar">
+        <h1>Login Here</h1>
+        <p>Username</p>
+        <input type="text" placeholder="Enter Username" id="txtUsername">
+        <p>Password</p>
+        <input type="password" placeholder="Enter Password" id="txtPassword"> 
+        <button id="loginBtn" class="login-Btn">Login</button>
+        <button id="createAccBtn" class="create-Btn">Create an account</button>    
+  </div>
+
+  <!-- This would be the box for the creation account-->
+  <div class="createAcc">
+    <img src="memart.png" class="avatar">
+      <h1>Create Account</h1>
+    Username: <input type="text" id="addUsername" placeholder="Create Username..."><br>
+    Password: <input type="text" id="addPassword" placeholder="Create Password..."><br>
+    Confirm Password: <input type="text" id="confirmPassword" placeholder="Confirm Password..."><br>
+    <button id="addAccBtn">Create Account</button> 
+    <button id="backBtn">Back</button> 
+  </div>
+
+   <!-- This would be the front page of the website -->
+   <div class="proceedSite">
+      <h1>Hi! It's nice to see you! Please click the button to proceed!</h1>
+      <a href="homepage.html"><button id="proceedBtn">Enter MeMart!</button></a> 
+  </div>
+</body>
+<script>
+  //hides the the specific div at first
+  $(".createAcc").hide();
+  $(".proceedSite").hide();
+  // Array of user accounts in the form of objects
+  let userAccountsArr = [];
+
+    //for the login purposes of the user
+    $("#loginBtn").click(function(){
+      let username = document.getElementById("txtUsername").value;
+      let password = document.getElementById("txtPassword").value;
+      //console.log(userAccountsArr);
+
+      // validation for the text fields and for checking the existence of user
+      if (username == 0 || password == 0){
+        alert("Please fill up all the fields.");
+      } else if (userAccountsArr.length == 0){
+        alert("There is no any existing account in the system yet. Please create one.");
+      } else{
+          // the purpose of this variable is to store the username from our array userAccountsArr
+          let user = userAccountsArr.find(function(account) {
+          return account.username === txtUsername.value;
+          });
+          //a validation if such user is existing
+          if(user == undefined){
+            alert("User doesn't exist in the system!");
+            txtUsername.focus();
+            txtPassword.value = "";
+          } else if(user.password != password){
+              alert("Incorrect password! Please enter the correct password.");
+              txtPassword.value = "";
+          } else{ //when the login is successful it displays a div before entering to the homepage
+              alert("Login successful!");
+              $(".proceedSite").fadeIn("slow");
+          }
+        }
+    });
+
+  //this part of the code leads us to the create account section of the system
+  $(document).ready(function(){
+    $("#createAccBtn").click(function(){
+      $(".createAcc").show(); //shows the specific div including its child elements
+      $(".loginbox").hide(); //hides the specific div including its child elements
+      txtUsername.value = "";
+      txtPassword.value = "";
+    });
+
+    //when the back button was clicked, it leads us back to the login section
+    $("#backBtn").click(function(){
+      $(".createAcc").hide();
+      $(".loginbox").show();
+      clearFields();
+    });
+
+    /*this part of the code is for the purpose of account creation,
+    when all the requirements are met and the account will be added to the system*/
+  $("#addAccBtn").click(function(){
+      //validation or error checking for the fields
+     if(addUsername.value == 0 || addPassword.value == 0  || confirmPassword.value == 0){
+        alert("Please fill up all the fields.");
+    } else if (addPassword.value != confirmPassword.value){
+        alert("Password do not match!");
+        addPassword.focus();
+        confirmPassword.focus();
+    } else if(userAccountsArr == null){
+        //calls our customed function insertData()
+        insertData();
+        clearFields();
+        alert("Account created successfully!");
+        alert("Going back to the login page.");
+        $(".createAcc").hide();
+        $(".loginbox").show();
+    } else{
+        let username = document.getElementById("addUsername");
+        // the purpose of this variable is to store the username from our array userAccountsArr
+        let user = userAccountsArr.find(function(account){
+        //console.log(account);
+        return account.username === txtUsername.value;
+        });
+
+        /*a validation when input username didn't passed from the test of our variable "user" 
+        meaning when the find method returns a value from our array userAccountsArr, 
+        then the input username is existing.*/
+        if(user != undefined){
+          alert("User already exist in the system! Try using another username.");
+          addUsername.focus();
+        } else{
+            //calls our customed function insertData()
+            insertData();
+            clearFields();
+            alert("Account created successfully!");
+            alert("Going back to the login page.");
+            $(".createAcc").hide();
+            $(".loginbox").show();
+        }  
+     }
+    })
+  });
+
+  //A function for adding new user account in the localStorage
+  function insertData(){
+    let objUser = new UserAccounts(addUsername.value, addPassword.value);
+    //Add the newly created object in userAccountsArr
+    userAccountsArr.push(objUser);
+    /*Serialize the object User by converting into a string since localStorage
+      only stores data in the form of a string*/
+    let serializedObj = JSON.stringify(userAccountsArr);
+    //Store the serializedObj in localStorage having the key "accountList"
+    localStorage.setItem("accountList", serializedObj);
+  }
+
+  //A function for putting values inside our array userAccountsArr
+  function loadDefault(){
+    if(localStorage.length == 0){
+      localStorage.setItem("accountList", "[]");
+  } else{
+      let deserializedObj = JSON.parse(localStorage.getItem("accountList"));
+      //this loop's purpose is to push each deserialized object in the array
+      for(i = 0; i < deserializedObj.length; i++){
+      userAccountsArr.push(deserializedObj[i]);
+  }
+       }
+  }
+  
+  function clearFields(){
+    addUsername.value = "";
+    addPassword.value = "";
+    confirmPassword.value = "";
+  }
+
+  </script>
+</html>

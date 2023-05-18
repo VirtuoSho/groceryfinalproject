@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+	<script src="UserAccManage.js"></script>
+	<link rel="stylesheet" href="accmanagement.css">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title></title>
+	<script src="UserAccounts.js"></script>
+</head>
+<body onload="loadDefaults()">
+	<nav>
+  <ul>
+  	<div class="navbar">
+  	<img src="memart.png" class="logo">
+    <a href="index.html"><button class="logout">Logout</button></a>
+    </div>
+  </ul>
+</nav>
+	<!-- This would be the box for the creation account-->
+    <div class="createAcc">
+       <h1>Create Account</h1>
+		  Username: <input type="text" id="addUsername" placeholder="Create Username"><br>
+		  Password: <input type="text" id="addPassword" placeholder="Create Password"><br>
+		  Confirm Password: <input type="text" id="confirmPassword" placeholder="Confirm Password"><br>
+		  <button id="addAccBtn">Add Account</button>
+		  <a href="homepage.html"><button id="backBtn">BACK TO HOMEPAGE</button></a> 
+    </div>
+    <center><h1>Accounts List:</h1></center>
+    <table border='1px'>
+      <thead>
+        <th>USERNAME</th>
+        <th>PASSWORD</th>
+        <th>ACTION</th>
+      </thead>
+      <tbody id="tblUser"></tbody>
+    </table>
+  <script>
+  //array for user account objects
+	let userAccountsArr = [];
+	let deserializedObj = JSON.parse(localStorage.getItem("accountList"));
+
+	//this loop's purpose is to push each deserialized object in the array
+	for(i = 0; i < deserializedObj.length; i++){
+		userAccountsArr.push(deserializedObj[i]);
+	}
+    
+  //Function to add account
+	$("#addAccBtn").click(function(){
+	  let username = document.getElementById("addUsername").value;
+    let password = document.getElementById("addPassword").value;
+    let confirmPass = document.getElementById("confirmPassword").value;
+
+      // the purpose of this variable is to check if username input exists in our array userAccountsArr
+      let user = userAccountsArr.find(function(account){
+        //console.log(account);
+        return account.username === addUsername.value;
+      });
+
+	    //validation or error checking for the fields
+	    if(username == 0 || password == 0  || confirmPass == 0){
+	      alert("Please fill up all the fields.");
+	      /*a validation when input username didn't passed from the test of our variable "user", 
+	      meaning when the find method returns a value from our array userAccountsArr, then 
+	      the input username is existing.*/
+	    } else if(user != undefined) {
+	    	alert("User already exist in the system! Try using another username.");
+	        addUsername.focus();
+	    } else if(password != confirmPass){
+	    	alert("Password do not match!");
+	        confirmPassword.focus();
+	    } else{
+	    		insertData();
+	        alert("Account created successfully!");
+	        clearFields();
+	        displayTable();
+	    }
+    });
+
+ function loadDefaults(){
+   //Check if localStorage has existing keys before displaying the table
+	if(localStorage.length > 0){
+		//Call the displayTable() method
+		displayTable();
+		/*Retrieve the content of accountList key from localStorage and parse into
+		an array of object so that the existing values will be included in the
+		table upon inserting a new object*/
+		userAccountsArr = JSON.parse(localStorage.getItem("accountList"));
+	} else{
+		//Set the starting values of the keys
+		localStorage.setItem("accountList", "[]");
+	}
+}
+
+	//A function for adding new user account in the localStorage
+    function insertData(){
+	    let objUser = new UserAccManage(addUsername.value, addPassword.value);
+	    //Add the newly created object in userAccountsArr
+	    userAccountsArr.push(objUser);
+	    /*Serialize the object User by converting into a string since localStorage
+	    only stores data in the form of a string*/
+	    let serializedObj = JSON.stringify(userAccountsArr);
+	    //Store the serializedObj in localStorage having the key "accountList"
+	    localStorage.setItem("accountList", serializedObj);
+	  }
+
+	//this function shows and create table with the buttons
+	function displayTable(){
+    let tableHTML = "<tr>";
+    let deserializedObj = JSON.parse(localStorage.getItem("accountList"));
+
+	  for (let i = 0; i < deserializedObj.length; i++) {
+	    let instance = new UserAccManage();
+	    Object.assign(instance, deserializedObj[i]);
+	    deserializedObj[i] = instance;
+	    tableHTML += "<td>" + instance.username + "</td>" +
+	      "<td>" + instance.password + "</td>" +
+	      "<td><button class='updBtn'>CHANGE PASSWORD</button><button class='dltBtn'>DELETE</button></td>" +
+	      "</tr>";
+  	}
+  	//display the data inside the table
+  	$("#tblUser").html(tableHTML);
+
+		// Add event listener for delete buttons
+	  $(".dltBtn").click(function () {
+	  var index = $(this).parents("tr").eq(0).prevAll().length;
+	  deleteUser(index);
+	  });
+
+	  // Add event listener for change password buttons
+	  $(".updBtn").click(function () {
+	  let index = $(this).parents("tr").eq(0).prevAll().length;
+	  updatePassword(index);
+		});
+  }
+
+//function for delete buttons created
+function deleteUser(index) {
+  // Remove an object from the array
+  userAccountsArr.splice(index, 1);
+
+  // Update the localStorage with the updated array
+  let serializedObj = JSON.stringify(userAccountsArr);
+  localStorage.setItem("accountList", serializedObj);
+
+  // Refresh the table
+  displayTable();
+}
+
+// this is a custom function to update the password
+function updatePassword(index) {
+  let newPassword = prompt("Enter the new password:");
+  let confirmPassword = prompt("Confirm password:");
+
+  //a validation for the text fields
+  if (newPassword == null || confirmPassword == null){
+  	alert("Please fill up all the fields.");
+  } else if(newPassword == 0 || confirmPassword == 0){
+  	alert("Please fill up all the fields.");
+  } else if(newPassword !== confirmPassword){
+    alert("Password do not match!");
+  } else{ 
+  	//updates to a new password
+    userAccountsArr[index].password = newPassword;
+
+    // Update the localStorage with the updated array
+    let serializedObj = JSON.stringify(userAccountsArr);
+    localStorage.setItem("accountList", serializedObj);
+
+    // Refresh the table
+    displayTable();
+  }
+}
+
+
+  function clearFields(){
+		addUsername.value = "";
+		addPassword.value = "";
+		confirmPassword.value = "";
+	}
+</script>
+</body>
+</html>

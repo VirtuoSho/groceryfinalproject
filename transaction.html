@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="trans.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<nav>
+  <ul>
+    <img src="memart.png" class="logo">
+    <a href="index.html"><button class="logout">Logout</button></a>
+  </ul>
+</nav>
+  <h1>Transaction</h1>
+  <div class="button-container">
+  <button id="checkoutBtn">Proceed to Checkout</button>
+  <button id="resetBtn">Reset</button>
+  <button id="calculateChangeBtn">Calculate Change</button>
+  </div>
+
+  <div class="table-container">
+    <table id="transactionTable">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Image</th>
+          <th>Item Name</th>
+          <th>Price</th>
+          <th>Stocks</th>
+          <th>Quantity</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <!-- Table rows will be added dynamically -->
+      </tbody>
+    </table>
+
+    <table id="selectedItemsTable" class="summary-table">
+      <thead>
+        <tr>
+          <th>Item Name</th>
+          <th>Quantity</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="summaryTableBody">
+        <!-- Summary table rows will be added dynamically -->
+      </tbody>
+    </table>
+  </div>
+
+  <p id="changeDisplay" style="text-align: center;"></p>
+
+  <div class="bottom-right-buttons">
+    <a href="homepage.html" id="goBack"><button>Go Back to Menu</button></a>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      // Retrieve transaction items from localStorage
+      let transactionItems = getItemsFromLocal();
+
+      // Function to display the transaction table
+      function displayTransactionTable() {
+        for (let i = 0; i < transactionItems.length; i++) {
+          let item = transactionItems[i];
+          let newRow = $("<tr>");
+
+          newRow.append('<td class="checkbox-cell"><input type="checkbox"></td>');
+          newRow.append('<td><img src="' + (item.image || "placeholder.png") + '" alt="Item Image" width="50"></td>');
+          newRow.append("<td>" + (item.name || "") + "</td>");
+          newRow.append("<td>" + (item.price || "") + "</td>");
+          newRow.append("<td>" + (item.quantity || "") + "</td>");
+
+          let commentCell = $('<td class="textfield-cell"><input type="number" min="1" max="' + 
+                            (item.quantity || "") + '" value="0"/></td>');
+          newRow.append(commentCell);
+
+          // Event listener for checkbox change
+          newRow.find(".checkbox-cell input").on("change", function () {
+            if ($(this).is(":checked")) {
+              commentCell.addClass("active");
+            } else {
+              commentCell.removeClass("active");
+            }
+          });
+
+          $("#transactionTable tbody").append(newRow);
+        }
+      }
+
+      displayTransactionTable();
+
+      // Function to update the summary table and calculate total amount
+      function updateSummaryTable() {
+        let selectedItems = [];
+        let totalAmount = 0;
+        $("#summaryTableBody").empty();
+        $("#transactionTable tbody tr").each(function () {
+          let checkbox = $(this).find(".checkbox-cell input");
+          let commentCell = $(this).find(".textfield-cell");
+          let quantityInput = commentCell.find("input");
+          let itemName = $(this).find("td:nth-child(3)").text();
+          let itemQuantity = parseInt($(this).find("td:nth-child(5)").text(), 10);
+          let itemPrice = parseInt($(this).find("td:nth-child(4)").text(), 10);
+          if (checkbox.is(":checked")) {
+            let quantity = parseInt(quantityInput.val(), 10);
+
+            if (quantity > 0 && quantity <= itemQuantity) {
+              selectedItems.push({
+                name: itemName,
+                quantity: quantity,
+                price: itemPrice
+              });
+
+              totalAmount += quantity * itemPrice;
+
+              // Update the quantity column in the first table
+              $(this).find("td:nth-child(5)").text(itemQuantity - quantity);
+            }
+          }
+        });
+        /*The purpose of this part of code is to iterate the selectedItems array using the forEach() method
+          for us to create a table row and be added on the specific table*/
+        selectedItems.forEach(function (item) {
+          let summaryRow = $("<tr>");
+          summaryRow.append("<td>" + item.name + "</td>");
+          summaryRow.append("<td>" + item.quantity + "</td>");
+          summaryRow.append("<td>" + (item.price * item.quantity) + "</td>");
+          $("#summaryTableBody").append(summaryRow);
+        });
+
+        $("#summaryTableBody").append("<tr><td colspan='2'>Total</td><td>" + totalAmount + "</td></tr>");
+
+        // Update transaction items in localStorage
+        localStorage.setItem("items", JSON.stringify(transactionItems));
+      }
+
+      // Event listener for "Proceed to Checkout" button click
+      $("#checkoutBtn").on("click", function (event) {
+        event.preventDefault(); // Prevent page reload
+
+        // Validation check
+        let isAnyItemChecked = $("#transactionTable tbody .checkbox-cell input:checked").length > 0;
+        let isQuantityValid = true;
+
+        $("#transactionTable tbody tr").each(function () {
+          let checkbox = $(this).find(".checkbox-cell input");
+          let commentCell = $(this).find(".textfield-cell");
+          let quantityInput = commentCell.find("input");
+          if (checkbox.is(":checked") && (quantityInput.val() === "" || isNaN(quantityInput.val()) || quantityInput.val() === "0")) {
+            isQuantityValid = false;
+            return false; // Exit the loop if invalid quantity found
+          }
+        });
+
+        if (!isAnyItemChecked || !isQuantityValid) {
+          alert("Please select at least one item and enter a valid quantity greater than 0.");
+          return;
+        }
+
+        updateSummaryTable();
+
+        // Retrieve selected item names from the selected rows
+        let selectedItemsNames = [];
+        $("#transactionTable tbody tr").each(function () {
+          let checkbox = $(this).find(".checkbox-cell input");
+          if (checkbox.is(":checked")) {
+            let itemName = $(this).find("td:nth-child(3)").text();
+            selectedItemsNames.push(itemName);
+          }
+        });
+
+        // Remove selected items from transactionItems array
+        transactionItems = transactionItems.filter(function (item) {
+          return !selectedItemsNames.includes(item.name);
+        });
+
+        // Reset the checkbox and textfield states
+        $("#transactionTable tbody tr").each(function () {
+          let checkbox = $(this).find(".checkbox-cell input");
+          let commentCell = $(this).find(".textfield-cell");
+          checkbox.prop("checked", false);
+          commentCell.removeClass("active");
+          commentCell.find("input").val(0);
+        });
+        // Show or hide appropriate buttons
+        $("#checkoutBtn").hide();
+        $("#calculateChangeBtn").show();
+        $("#resetBtn").show();
+      });
+
+      // Event listener for "Reset" button click
+      $("#resetBtn").on("click", function () {
+        // Clear summary table
+        $("#summaryTableBody").empty();
+        $("#changeDisplay").empty()
+
+        // Reset transactionItems array
+        transactionItems = getItemsFromLocal();
+
+        // Reset the checkbox and textfield states
+        $("#transactionTable tbody tr").each(function () {
+          let checkbox = $(this).find(".checkbox-cell input");
+          let commentCell = $(this).find(".textfield-cell");
+          checkbox.prop("checked", false);
+          commentCell.removeClass("active");
+          commentCell.find("input").val(0);
+        });
+
+        // Show or hide appropriate buttons
+        $("#checkoutBtn").show();
+      });
+
+      // Event listener for "Calculate Change" button click
+      $("#calculateChangeBtn").on("click", function () {
+        let totalAmount = parseInt($("#summaryTableBody tr:last-child td:last-child").text(), 10);
+        let paidAmount = parseInt(prompt("Enter the amount paid:"), 10);
+
+        // validation when the user tried to enter letters isntead of numbers
+        if (isNaN(paidAmount)) {
+          alert("Invalid amount entered. Please enter a valid number.");
+          return;
+        }
+
+        let change = paidAmount - totalAmount;
+        if (change >= 0) {
+          $("#changeDisplay").text("Change: " + change);
+        } else {
+          $("#changeDisplay").text("Insufficient payment amount.");
+        }
+      });
+    });
+
+    // A custom function to retrieve items from localStorage
+    function getItemsFromLocal(){
+      /* A validation to check if the key value has existing values
+         in the local storage. If not, it returns an empty array */
+      if (localStorage.getItem("items") != null) {
+        return JSON.parse(localStorage.getItem("items"));
+      } else {
+        return [];
+      }
+    }
+  </script>
+</body>
+
+</html>

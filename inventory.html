@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="invandtransact.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <nav>
+  <ul>
+    <img src="memart.png" class="logo">
+    <a href="index.html"><button class="logout">Logout</button></a>
+  </ul>
+</nav>
+
+  <h1>Inventory</h1>
+
+  <form id="addItemForm">
+    <input type="file" id="itemImage"> <br><br>
+    <input type="text" id="itemName" placeholder="Item Name" required>
+    <input type="text" id="itemPrice" step="0.01" placeholder="Item Price" required>
+    <input type="number" id="itemQuantity" placeholder="Stocks" required><br><br>
+    <button id="addProduct">Add Item</button>
+  </form>
+
+  <table id="groceryTable">
+    <thead>
+      <tr>
+        <th>Image</th>
+        <th>Item Name</th>
+        <th>Price</th>
+        <th>Stocks</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+
+    <tbody id="prodList">
+      <!-- Table rows will be added here -->
+    </tbody>
+  </table>
+
+  <div class="bottom-right-buttons">
+    <a href="homepage.html" id="goBack"><button>Go Back to Menu</button></a>
+  </div>
+
+  <script>
+   $(document).ready(function () {
+  // Function to add a new item to the table and update localStorage
+  function addItem() {
+    let itemName = $("#itemName").val();
+    let itemPrice = $("#itemPrice").val();
+    let itemQuantity = $("#itemQuantity").val();
+    let itemImage = $("#itemImage")[0].files[0]; // Get the selected image file
+
+    // Validation if an image file is selected
+    if (itemImage != null) {
+      let reader = new FileReader();
+
+      // Read the selected image file as a data URL
+      reader.readAsDataURL(itemImage);
+
+      // Add an elements to be displayed
+      reader.onload = function () {
+        let newRow = '<tr>' +
+          '<td><img src="' + reader.result + '" alt="Item Image" width="50"></td>' +
+          '<td>' + itemName + '</td>' +
+          '<td>' + itemPrice + '</td>' +
+          '<td>' + itemQuantity + '</td>' +
+          '<td><button class="deleteBtn">Delete</button></td>' +
+          '</tr>';
+
+        $("#prodList").append(newRow);
+        clearFields();
+
+        // Update the key items in localStorage with the help of object literals
+        let objProduct = {
+          name: itemName,
+          price: itemPrice,
+          quantity: itemQuantity,
+          image: reader.result,
+        };
+        let items = getItemsFromLocalStorage(); // Retrieve items from localStorage
+        items.push(objProduct);
+        localStorage.setItem("items", JSON.stringify(items));
+      };
+    } else {
+      alert("Please provide an image for the product and make sure to fill up all the fields.");
+    }
+  }
+
+  // A custom function to retrieve items from localStorage
+  function getItemsFromLocalStorage() {
+    /* A validation to check if the key value has existing values
+       in the local storage. If not, it returns an empty array */
+    if (localStorage.getItem("items") != null) {
+      return JSON.parse(localStorage.getItem("items"));
+    } else {
+      return [];
+    }
+  }
+
+  //this function is for the deleteBtn
+  function deleteItem() {
+    $(this).parent().parent().remove();
+
+    let itemName = $(this).parent().parent().find("td:nth-child(2)").text();
+
+    let itemStorage = getItemsFromLocalStorage();
+
+    for (let i = 0; i < itemStorage.length; i++) {
+      if (itemStorage[i].name === itemName) {
+        itemStorage.splice(i, 1);
+        localStorage.setItem("items", JSON.stringify(itemStorage));
+        break;
+      }
+    }
+  }
+
+  // Attach event handler for the button
+  $("#addProduct").click(function () {
+    addItem();
+  });
+
+  // Attach event handler for the delete button click event
+  $(document).on("click", ".deleteBtn", deleteItem);
+
+  let items = getItemsFromLocalStorage();
+  /*The purpose of this code block is to create rows containing 
+  information about the products stored in the items array.*/
+  for (let i = 0; i < items.length; i++) {
+    let item = items[i];
+    let newRow = "<tr>";
+    /*As you can see we created conditions in this part of code like "(item.name || "")". 
+    This checks if item.name has a value. If it has a value, it will be used
+    or an empty string will be used as value. And same applies to other conditions provided*/
+    newRow += '<td><img src="' + (item.image || "") + '" alt="Item Image" width="50"></td>' +
+      '<td>' + (item.name || "") + '</td>' +
+      '<td>' + (item.price || "") + '</td>' +
+      '<td>' + (item.quantity || "") + '</td>' +
+      '<td><button class="deleteBtn">Delete</button></td>';
+    newRow += '</tr>';
+    $("#prodList").append(newRow);
+  }
+
+  function clearFields() {
+    $("#itemName").val("");
+    $("#itemPrice").val("");
+    $("#itemQuantity").val("");
+    $("#itemImage").val(null); // Reset the file input field
+  }
+});
+
+  </script>
+
+</body>
+</html>
